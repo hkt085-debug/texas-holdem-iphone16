@@ -1,0 +1,2322 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#070b12" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="德州撲克">
+  <title>德州撲克 Mobile — iPhone 16 Web App 草案</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-outer: #05070d;
+      --bg-app: #091118;
+      --felt-center: #145c43;
+      --felt-mid: #0e4331;
+      --felt-edge: #07261c;
+      --rail-dark: #1d1613;
+      --rail-mid: #32241d;
+      --gold: #e8c468;
+      --gold-dim: #b5903a;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --danger: #ef4444;
+      --success: #10b981;
+      --blue: #3b82f6;
+      --safe-top: env(safe-area-inset-top, 59px);
+      --safe-bottom: env(safe-area-inset-bottom, 34px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', sans-serif;
+      background: radial-gradient(circle at 50% 25%, #121c2d 0%, #05070d 75%);
+      color: var(--text-main);
+    }
+
+    /* Desktop / Preview Stage: centers exact 393x852 iPhone 16 shell */
+    .stage {
+      width: 100vw;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      position: relative;
+    }
+
+    /* iPhone 16 Device Shell (393x852 CSS viewport) */
+    .iphone-shell {
+      position: relative;
+      width: 393px;
+      height: 852px;
+      max-height: calc(100dvh - 24px);
+      max-width: calc(100vw - 24px);
+      border-radius: 52px;
+      background: #080d14;
+      box-shadow:
+        0 0 0 3px #3a3f4a,
+        0 0 0 6px #181b22,
+        0 28px 70px rgba(0, 0, 0, 0.78),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transform-origin: center center;
+    }
+
+    /* Dynamic Island & Status Bar (visible in desktop/framed preview) */
+    .ios-status-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 54px;
+      padding: 14px 26px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 40;
+      pointer-events: none;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .dynamic-island {
+      position: absolute;
+      top: 11px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 122px;
+      height: 35px;
+      background: #000000;
+      border-radius: 20px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 12px;
+    }
+
+    .dynamic-island::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #243b6b, #080d1a 70%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .ios-status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #f8fafc;
+    }
+
+    .ios-home-indicator {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 134px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.35);
+      z-index: 50;
+      pointer-events: none;
+    }
+
+    /* Native Mobile Fullscreen (real iPhone 16 / narrow mobile) */
+    @media (max-width: 440px) and (max-height: 940px) {
+      .stage {
+        padding: 0;
+      }
+      .iphone-shell {
+        width: 100vw;
+        height: 100dvh;
+        max-width: 100vw;
+        max-height: 100dvh;
+        border-radius: 0;
+        box-shadow: none;
+        transform: none !important;
+      }
+      .ios-status-bar,
+      .ios-home-indicator {
+        display: none;
+      }
+    }
+
+    /* App Interior */
+    .app-root {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: radial-gradient(ellipse at 50% 42%, #0e2029 0%, #070d14 100%);
+      padding-top: 56px;
+      padding-bottom: 30px;
+    }
+
+    @media (max-width: 440px) and (max-height: 940px) {
+      .app-root {
+        padding-top: max(12px, env(safe-area-inset-top));
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+      }
+    }
+
+    /* Top Header Bar */
+    .top-bar {
+      height: 44px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(232, 196, 104, 0.12);
+      border: 1px solid rgba(232, 196, 104, 0.35);
+      color: var(--gold);
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .blinds-pill {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: #e2e8f0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.12s ease, background 0.15s ease;
+      font-size: 14px;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.92);
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .icon-btn.active {
+      border-color: rgba(232, 196, 104, 0.5);
+      color: var(--gold);
+      background: rgba(232, 196, 104, 0.14);
+    }
+
+    /* Main Table Arena */
+    .table-arena {
+      position: relative;
+      flex: 1;
+      margin: 4px 12px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+    }
+
+    /* Vertical Oval Poker Table */
+    .poker-table {
+      position: absolute;
+      inset: 38px 18px 26px;
+      border-radius: 165px;
+      background:
+        radial-gradient(ellipse at 50% 42%, var(--felt-center) 0%, var(--felt-mid) 56%, var(--felt-edge) 100%);
+      border: 11px solid var(--rail-mid);
+      box-shadow:
+        0 0 0 2px #4c372c,
+        0 0 0 5px #120d0b,
+        0 18px 40px rgba(0, 0, 0, 0.65),
+        inset 0 0 28px rgba(0, 0, 0, 0.65);
+    }
+
+    .poker-table::before {
+      content: '';
+      position: absolute;
+      inset: 12px;
+      border-radius: 150px;
+      border: 1.5px solid rgba(232, 196, 104, 0.25);
+      pointer-events: none;
+    }
+
+    .table-watermark {
+      position: absolute;
+      top: 77%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.24em;
+      color: rgba(232, 196, 104, 0.16);
+      text-transform: uppercase;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* Center Pot & Community Cards */
+    .table-center {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-top: 44px;
+      width: 100%;
+    }
+
+    .pot-display {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(5, 14, 12, 0.72);
+      border: 1px solid rgba(232, 196, 104, 0.42);
+      padding: 5px 14px;
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    .pot-chip-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #facc15 35%, #b45309 100%);
+      border: 2px dashed #fef08a;
+      flex-shrink: 0;
+    }
+
+    .pot-label {
+      font-size: 11px;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+
+    .pot-amount {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .street-tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.65);
+      background: rgba(0, 0, 0, 0.28);
+      padding: 2px 9px;
+      border-radius: 999px;
+    }
+
+    .community-cards {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      height: 76px;
+    }
+
+    .card-slot {
+      width: 50px;
+      height: 72px;
+      border-radius: 7px;
+      border: 1.5px dashed rgba(255, 255, 255, 0.16);
+      background: rgba(0, 0, 0, 0.16);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Playing Cards */
+    .playing-card {
+      width: 50px;
+      height: 72px;
+      border-radius: 7px;
+      background: linear-gradient(160deg, #ffffff 0%, #f1f5f9 100%);
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.42);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 4px 5px;
+      color: #111827;
+      font-weight: 800;
+      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, opacity 0.2s ease;
+      animation: dealCard 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes dealCard {
+      from {
+        opacity: 0;
+        transform: translateY(-16px) scale(0.86);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .playing-card.red { color: #dc2626; }
+    .playing-card.blue { color: #2563eb; }
+    .playing-card.green { color: #15803d; }
+
+    .playing-card.back {
+      background:
+        repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 4px, #172554 4px, #172554 8px);
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+    }
+
+    .playing-card.back::after {
+      content: '♠';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: rgba(232, 196, 104, 0.45);
+    }
+
+    .playing-card.mini {
+      width: 34px;
+      height: 48px;
+      border-radius: 5px;
+      padding: 2px 3px;
+    }
+
+    .playing-card.mini .card-rank {
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .playing-card.mini .card-suit-sm {
+      font-size: 10px;
+      line-height: 1;
+    }
+
+    .playing-card.mini .card-suit-lg {
+      font-size: 16px;
+      bottom: 3px;
+      right: 4px;
+    }
+
+    .playing-card.hero-card {
+      width: 60px;
+      height: 84px;
+      border-radius: 9px;
+      padding: 5px 6px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.55);
+    }
+
+    .playing-card.hero-card .card-rank {
+      font-size: 18px;
+    }
+
+    .playing-card.hero-card .card-suit-sm {
+      font-size: 14px;
+    }
+
+    .playing-card.hero-card .card-suit-lg {
+      font-size: 30px;
+      bottom: 5px;
+      right: 6px;
+    }
+
+    .card-corner {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 0.95;
+    }
+
+    .card-rank {
+      font-size: 15px;
+      letter-spacing: -0.04em;
+    }
+
+    .card-suit-sm {
+      font-size: 12px;
+      margin-top: 1px;
+    }
+
+    .card-suit-lg {
+      position: absolute;
+      bottom: 4px;
+      right: 5px;
+      font-size: 24px;
+      line-height: 1;
+      opacity: 0.92;
+    }
+
+    .playing-card.winning {
+      box-shadow: 0 0 0 2.5px #facc15, 0 0 18px rgba(250, 204, 21, 0.7);
+      transform: translateY(-4px);
+    }
+
+    .playing-card.dimmed {
+      opacity: 0.48;
+      filter: grayscale(0.25);
+    }
+
+    /* AI Seats Positioned Around Vertical Table */
+    .seat {
+      position: absolute;
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 106px;
+      transition: opacity 0.25s ease;
+    }
+
+    .seat.folded {
+      opacity: 0.52;
+    }
+
+    .seat-top {
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .seat-left {
+      top: 19%;
+      left: 0;
+    }
+
+    .seat-right {
+      top: 19%;
+      right: 0;
+    }
+
+    .seat-cards {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 3px;
+      z-index: 6;
+      min-height: 48px;
+      align-items: flex-end;
+    }
+
+    .seat-box {
+      width: 100%;
+      background: rgba(11, 18, 28, 0.92);
+      border: 1.5px solid rgba(255, 255, 255, 0.14);
+      border-radius: 14px;
+      padding: 12px 8px 6px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .seat.active-turn .seat-box {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 2px rgba(232, 196, 104, 0.3), 0 0 20px rgba(232, 196, 104, 0.35);
+    }
+
+    .seat.winner .seat-box {
+      border-color: #34d399;
+      box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.4), 0 0 22px rgba(16, 185, 129, 0.5);
+    }
+
+    .seat-name-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .seat-style {
+      font-size: 9px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .seat-chips {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--gold);
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dealer-btn {
+      position: absolute;
+      top: -8px;
+      right: -6px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #fef08a, #ca8a04);
+      color: #1c1917;
+      font-size: 11px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+      z-index: 5;
+    }
+
+    .role-badge {
+      position: absolute;
+      top: -8px;
+      left: -6px;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 5px;
+      border-radius: 6px;
+      background: #1e293b;
+      color: #93c5fd;
+      border: 1px solid rgba(147, 197, 253, 0.4);
+      z-index: 5;
+    }
+
+    .action-bubble {
+      margin-top: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+      min-height: 19px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .action-bubble.empty {
+      visibility: hidden;
+    }
+
+    .action-bubble.fold { background: rgba(239, 68, 68, 0.22); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.45); }
+    .action-bubble.check { background: rgba(59, 130, 246, 0.22); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.45); }
+    .action-bubble.call { background: rgba(16, 185, 129, 0.22); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.45); }
+    .action-bubble.raise { background: rgba(245, 158, 11, 0.25); color: #fde68a; border: 1px solid rgba(245, 158, 11, 0.55); }
+    .action-bubble.allin { background: linear-gradient(90deg, #dc2626, #ea580c); color: #ffffff; border: 1px solid #fdba74; }
+    .action-bubble.blind { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.32); }
+
+    /* Result / Status Toast Banner on Table */
+    .table-banner {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
+      background: rgba(9, 17, 26, 0.92);
+      border: 1px solid rgba(232, 196, 104, 0.55);
+      border-radius: 14px;
+      padding: 7px 14px;
+      text-align: center;
+      max-width: 92%;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .table-banner.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 8px);
+    }
+
+    .banner-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--gold);
+    }
+
+    .banner-sub {
+      font-size: 11px;
+      color: #cbd5e1;
+      margin-top: 2px;
+    }
+
+    /* Hero Section (Bottom Thumb Zone) */
+    .hero-zone {
+      flex-shrink: 0;
+      padding: 6px 14px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .hero-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(180deg, rgba(17, 28, 42, 0.92), rgba(10, 17, 27, 0.96));
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      padding: 8px 12px;
+      position: relative;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .hero-panel.active-turn {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 2px rgba(232, 196, 104, 0.25), 0 0 20px rgba(232, 196, 104, 0.22);
+    }
+
+    .hero-panel.winner {
+      border-color: #34d399;
+      box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.35);
+    }
+
+    .hero-cards-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: -16px;
+      margin-bottom: -2px;
+      position: relative;
+      z-index: 6;
+    }
+
+    .hero-cards-wrap .playing-card:first-child {
+      transform: rotate(-2deg);
+    }
+
+    .hero-cards-wrap .playing-card:last-child {
+      transform: rotate(2deg);
+    }
+
+    .hero-cards-wrap .playing-card.winning {
+      transform: translateY(-6px) rotate(0deg);
+    }
+
+    .hero-info {
+      flex: 1;
+      padding-left: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .hero-top-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .hero-name {
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hero-chip-count {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hero-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .hand-strength-pill {
+      font-size: 11px;
+      font-weight: 700;
+      color: #6ee7b7;
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 2px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .hero-bet-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: #fde68a;
+    }
+
+    /* Raise Controls Drawer */
+    .raise-drawer {
+      background: rgba(13, 21, 33, 0.96);
+      border: 1px solid rgba(232, 196, 104, 0.35);
+      border-radius: 16px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .raise-drawer.hidden {
+      display: none;
+    }
+
+    .quick-bets {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .quick-bet-btn {
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.06);
+      color: #e2e8f0;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .quick-bet-btn:active {
+      background: rgba(232, 196, 104, 0.25);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .raise-slider {
+      flex: 1;
+      accent-color: var(--gold);
+      height: 6px;
+      cursor: pointer;
+    }
+
+    .raise-value-box {
+      min-width: 72px;
+      text-align: right;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Primary Thumb Action Buttons */
+    .action-bar {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr 1.15fr;
+      gap: 8px;
+    }
+
+    .action-btn {
+      height: 50px;
+      border-radius: 14px;
+      border: none;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.15;
+      transition: transform 0.1s ease, opacity 0.15s ease, filter 0.15s ease;
+      box-shadow: 0 5px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    .action-btn:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.36;
+      cursor: not-allowed;
+      filter: grayscale(0.4);
+    }
+
+    .action-btn .sub {
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0.88;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn-fold {
+      background: linear-gradient(180deg, #7f1d1d 0%, #581313 100%);
+      border: 1px solid rgba(248, 113, 113, 0.35);
+    }
+
+    .btn-call {
+      background: linear-gradient(180deg, #059669 0%, #047857 100%);
+      border: 1px solid rgba(110, 231, 183, 0.4);
+    }
+
+    .btn-raise {
+      background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+      border: 1px solid rgba(253, 224, 71, 0.45);
+    }
+
+    .btn-next-hand {
+      grid-column: 1 / -1;
+      height: 50px;
+      border-radius: 14px;
+      border: 1px solid rgba(253, 224, 71, 0.55);
+      background: linear-gradient(180deg, #eab308 0%, #ca8a04 100%);
+      color: #111827;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(234, 179, 8, 0.32);
+    }
+
+    .btn-next-hand:active {
+      transform: scale(0.97);
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 7, 14, 0.78);
+      backdrop-filter: blur(6px);
+      z-index: 60;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 14px;
+      padding-bottom: 28px;
+    }
+
+    .modal-backdrop.hidden {
+      display: none;
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-height: 78%;
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 24px;
+      padding: 18px 16px;
+      overflow-y: auto;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--gold);
+    }
+
+    .modal-close {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .rank-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .rank-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      padding: 8px 11px;
+    }
+
+    .rank-item strong {
+      font-size: 12px;
+      color: #f8fafc;
+    }
+
+    .rank-item span {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .rank-example {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 13px;
+    }
+
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+
+    .spec-card {
+      background: rgba(232, 196, 104, 0.08);
+      border: 1px solid rgba(232, 196, 104, 0.28);
+      border-radius: 14px;
+      padding: 11px 12px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #cbd5e1;
+    }
+
+    .spec-card strong {
+      color: var(--gold);
+    }
+
+    .seg-group {
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 9px;
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .seg-btn {
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 9px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .seg-btn.active {
+      background: var(--gold);
+      color: #111827;
+    }
+
+    .danger-full-btn {
+      width: 100%;
+      margin-top: 12px;
+      height: 42px;
+      border-radius: 12px;
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      background: rgba(239, 68, 68, 0.16);
+      color: #fca5a5;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div class="iphone-shell" id="iphoneShell" role="application" aria-label="德州撲克 iPhone 16 Web App">
+      <!-- Simulated iPhone 16 Status Bar & Dynamic Island (desktop preview only) -->
+      <div class="ios-status-bar" aria-hidden="true">
+        <span id="statusTime">9:41</span>
+        <div class="dynamic-island"></div>
+        <div class="ios-status-icons">
+          <span>5G</span>
+          <span>100%</span>
+        </div>
+      </div>
+
+      <div class="app-root">
+        <!-- Top Navigation -->
+        <header class="top-bar">
+          <div class="brand-group">
+            <div class="brand-badge">♠ HOLD'EM</div>
+            <div class="blinds-pill" id="blindsDisplay">盲注 10/20</div>
+          </div>
+          <div class="top-actions">
+            <button type="button" class="icon-btn" id="btnSound" title="音效開關" aria-label="音效開關">🔊</button>
+            <button type="button" class="icon-btn" id="btnRanks" title="牌型說明" aria-label="牌型說明">🏆</button>
+            <button type="button" class="icon-btn" id="btnSettings" title="設定與規格" aria-label="設定與規格">⚙️</button>
+          </div>
+        </header>
+
+        <!-- Main Poker Table Arena -->
+        <main class="table-arena">
+          <div class="poker-table">
+            <div class="table-watermark">TEXAS HOLD'EM · IPHONE 16</div>
+          </div>
+
+          <!-- Opponent 2 (Top) -->
+          <div class="seat seat-top" id="seat-2">
+            <div class="seat-cards" id="cards-2"></div>
+            <div class="seat-box">
+              <div class="dealer-btn" id="dealer-2" style="display:none;">D</div>
+              <div class="role-badge" id="role-2" style="display:none;">SB</div>
+              <div class="seat-name-row"><span>Maya</span><span class="seat-style">緊兇</span></div>
+              <div class="seat-chips" id="chips-2">$1,000</div>
+            </div>
+            <div class="action-bubble empty" id="action-2">-</div>
+          </div>
+
+          <!-- Opponent 1 (Left) -->
+          <div class="seat seat-left" id="seat-1">
+            <div class="seat-cards" id="cards-1"></div>
+            <div class="seat-box">
+              <div class="dealer-btn" id="dealer-1" style="display:none;">D</div>
+              <div class="role-badge" id="role-1" style="display:none;">SB</div>
+              <div class="seat-name-row"><span>Alex</span><span class="seat-style">平衡</span></div>
+              <div class="seat-chips" id="chips-1">$1,000</div>
+            </div>
+            <div class="action-bubble empty" id="action-1">-</div>
+          </div>
+
+          <!-- Opponent 3 (Right) -->
+          <div class="seat seat-right" id="seat-3">
+            <div class="seat-cards" id="cards-3"></div>
+            <div class="seat-box">
+              <div class="dealer-btn" id="dealer-3" style="display:none;">D</div>
+              <div class="role-badge" id="role-3" style="display:none;">BB</div>
+              <div class="seat-name-row"><span>Ken</span><span class="seat-style">激進</span></div>
+              <div class="seat-chips" id="chips-3">$1,000</div>
+            </div>
+            <div class="action-bubble empty" id="action-3">-</div>
+          </div>
+
+          <!-- Center Pot & Community Cards -->
+          <section class="table-center" aria-label="公牌與底池">
+            <div class="street-tag" id="streetTag">PRE-FLOP</div>
+            <div class="pot-display">
+              <div class="pot-chip-icon"></div>
+              <span class="pot-label">底池</span>
+              <span class="pot-amount" id="potAmount">$0</span>
+            </div>
+            <div class="community-cards" id="communityCards"></div>
+          </section>
+
+          <!-- Showdown / Status Banner -->
+          <div class="table-banner hidden" id="tableBanner">
+            <div class="banner-title" id="bannerTitle"></div>
+            <div class="banner-sub" id="bannerSub"></div>
+          </div>
+        </main>
+
+        <!-- Bottom Thumb Zone (Hero + Betting Controls) -->
+        <section class="hero-zone" aria-label="玩家操作區">
+          <div class="hero-panel" id="heroPanel">
+            <div class="dealer-btn" id="dealer-0" style="display:none; top:-9px; right:10px;">D</div>
+            <div class="role-badge" id="role-0" style="display:none; top:-9px; right:38px; left:auto;">SB</div>
+            <div class="hero-cards-wrap" id="cards-0"></div>
+            <div class="hero-info">
+              <div class="hero-top-line">
+                <span class="hero-name">你 (Hero) <span class="action-bubble empty" id="action-0" style="margin-top:0;">-</span></span>
+                <span class="hero-chip-count" id="chips-0">$1,000</span>
+              </div>
+              <div class="hero-meta-row">
+                <span class="hand-strength-pill" id="heroHandRank">等待發牌</span>
+                <span class="hero-bet-tag" id="heroRoundBet"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Expandable Raise Slider Drawer -->
+          <div class="raise-drawer hidden" id="raiseDrawer">
+            <div class="quick-bets">
+              <button type="button" class="quick-bet-btn" data-preset="min">最小</button>
+              <button type="button" class="quick-bet-btn" data-preset="half">1/2 池</button>
+              <button type="button" class="quick-bet-btn" data-preset="pot">底池</button>
+              <button type="button" class="quick-bet-btn" data-preset="allin">ALL-IN</button>
+            </div>
+            <div class="slider-row">
+              <input type="range" class="raise-slider" id="raiseSlider" min="40" max="1000" step="10" value="40" aria-label="加注金額滑桿" />
+              <div class="raise-value-box" id="raiseValueLabel">$40</div>
+            </div>
+          </div>
+
+          <!-- Primary Action Buttons -->
+          <div class="action-bar" id="actionBar">
+            <button type="button" class="action-btn btn-fold" id="btnFold">
+              <span>棄牌</span>
+              <span class="sub">Fold</span>
+            </button>
+            <button type="button" class="action-btn btn-call" id="btnCall">
+              <span id="btnCallMain">過牌</span>
+              <span class="sub" id="btnCallSub">Check</span>
+            </button>
+            <button type="button" class="action-btn btn-raise" id="btnRaise">
+              <span id="btnRaiseMain">加注</span>
+              <span class="sub" id="btnRaiseSub">Raise</span>
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- Home Indicator (desktop preview only) -->
+      <div class="ios-home-indicator" aria-hidden="true"></div>
+
+      <!-- Hand Rankings Modal -->
+      <div class="modal-backdrop hidden" id="ranksModal" role="dialog" aria-modal="true" aria-label="德州撲克牌型大小">
+        <div class="modal-sheet">
+          <div class="modal-header">
+            <div class="modal-title">🏆 德州撲克牌型大小（高 → 低）</div>
+            <button type="button" class="modal-close" id="closeRanks">✕</button>
+          </div>
+          <div class="rank-list">
+            <div class="rank-item"><div><strong>1. 皇家同花順</strong><br /><span>Royal Flush</span></div><div class="rank-example">A♠ K♠ Q♠ J♠ 10♠</div></div>
+            <div class="rank-item"><div><strong>2. 同花順</strong><br /><span>Straight Flush</span></div><div class="rank-example">9♥ 8♥ 7♥ 6♥ 5♥</div></div>
+            <div class="rank-item"><div><strong>3. 四條 (鐵支)</strong><br /><span>Four of a Kind</span></div><div class="rank-example">K♠ K♥ K♦ K♣ A♠</div></div>
+            <div class="rank-item"><div><strong>4. 葫蘆</strong><br /><span>Full House</span></div><div class="rank-example">Q♠ Q♥ Q♦ 9♣ 9♠</div></div>
+            <div class="rank-item"><div><strong>5. 同花</strong><br /><span>Flush</span></div><div class="rank-example">A♦ J♦ 8♦ 5♦ 2♦</div></div>
+            <div class="rank-item"><div><strong>6. 順子</strong><br /><span>Straight</span></div><div class="rank-example">10♠ 9♦ 8♣ 7♥ 6♠</div></div>
+            <div class="rank-item"><div><strong>7. 三條</strong><br /><span>Three of a Kind</span></div><div class="rank-example">J♠ J♥ J♦ A♣ 4♠</div></div>
+            <div class="rank-item"><div><strong>8. 兩對</strong><br /><span>Two Pair</span></div><div class="rank-example">A♠ A♦ 8♣ 8♥ K♠</div></div>
+            <div class="rank-item"><div><strong>9. 一對</strong><br /><span>One Pair</span></div><div class="rank-example">10♥ 10♣ A♠ 9♦ 4♣</div></div>
+            <div class="rank-item"><div><strong>10. 高牌</strong><br /><span>High Card</span></div><div class="rank-example">A♠ K♦ 9♣ 6♥ 2♠</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings & iPhone 16 Spec Modal -->
+      <div class="modal-backdrop hidden" id="settingsModal" role="dialog" aria-modal="true" aria-label="遊戲設定與規格">
+        <div class="modal-sheet">
+          <div class="modal-header">
+            <div class="modal-title">⚙️ 設定與 iPhone 16 規格</div>
+            <button type="button" class="modal-close" id="closeSettings">✕</button>
+          </div>
+          <div class="spec-card">
+            <strong>iPhone 16 螢幕規格對齊</strong><br />
+            CSS 視窗：393 × 852 px（@3x 實體 1179 × 2556 px）<br />
+            安全區預留：頂部動態島 59px、底部主畫面列 34px，全單手拇指區操作。
+          </div>
+          <div class="setting-row">
+            <span>盲注級別</span>
+            <div class="seg-group" id="blindSeg">
+              <button type="button" class="seg-btn active" data-sb="10" data-bb="20">10/20</button>
+              <button type="button" class="seg-btn" data-sb="25" data-bb="50">25/50</button>
+              <button type="button" class="seg-btn" data-sb="50" data-bb="100">50/100</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <span>四色撲克牌（易辨花色）</span>
+            <div class="seg-group" id="deckColorSeg">
+              <button type="button" class="seg-btn active" data-mode="2">經典雙色</button>
+              <button type="button" class="seg-btn" data-mode="4">四色牌組</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <span>局數統計</span>
+            <span id="handStatsLabel" style="color:#e8c468;font-weight:700;">第 1 手 · 勝 0 場</span>
+          </div>
+          <button type="button" class="danger-full-btn" id="btnResetMatch">重新開局（全員重置 $1,000）</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      // ============================================================
+      // 1. iPhone 16 Preview Auto-Scale (fits any desktop / Canvas)
+      // ============================================================
+      function fitIphoneShell() {
+        const shell = document.getElementById('iphoneShell');
+        if (!shell) return;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        if (vw <= 440 && vh <= 940) {
+          shell.style.transform = 'none';
+          return;
+        }
+        const availW = vw - 24;
+        const availH = vh - 24;
+        const scale = Math.min(1, availW / 393, availH / 852);
+        shell.style.transform = `scale(${scale.toFixed(4)})`;
+      }
+
+      function updateClock() {
+        const el = document.getElementById('statusTime');
+        if (!el) return;
+        const now = new Date();
+        const hh = now.getHours();
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        el.textContent = `${hh}:${mm}`;
+      }
+
+      window.addEventListener('resize', fitIphoneShell);
+      window.addEventListener('load', () => {
+        fitIphoneShell();
+        updateClock();
+        setInterval(updateClock, 30000);
+      });
+
+      // ============================================================
+      // 2. Web Audio Synthesizer (Zero External Audio Files)
+      // ============================================================
+      const Sound = {
+        ctx: null,
+        enabled: true,
+        ensure() {
+          if (!this.enabled) return null;
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) this.ctx = new AC();
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+          }
+          return this.ctx;
+        },
+        tone(freq, dur, type = 'sine', gainVal = 0.08, delay = 0) {
+          const ctx = this.ensure();
+          if (!ctx) return;
+          const t = ctx.currentTime + delay;
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, t);
+          g.gain.setValueAtTime(0.001, t);
+          g.gain.exponentialRampToValueAtTime(gainVal, t + 0.012);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          osc.connect(g);
+          g.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + dur + 0.02);
+        },
+        deal() { this.tone(520, 0.06, 'triangle', 0.05); },
+        chip() {
+          this.tone(1850, 0.05, 'sine', 0.05);
+          this.tone(2420, 0.05, 'sine', 0.035, 0.025);
+        },
+        check() { this.tone(240, 0.07, 'triangle', 0.07); },
+        fold() { this.tone(170, 0.11, 'sine', 0.05); },
+        win() {
+          this.tone(523.25, 0.14, 'triangle', 0.08, 0);
+          this.tone(659.25, 0.14, 'triangle', 0.08, 0.09);
+          this.tone(783.99, 0.24, 'triangle', 0.09, 0.18);
+        }
+      };
+
+      // ============================================================
+      // 3. Poker Cards & 7-Card Exact Hand Evaluator
+      // ============================================================
+      const SUITS = ['s', 'h', 'd', 'c'];
+      const SUIT_SYMBOL = { s: '♠', h: '♥', d: '♦', c: '♣' };
+      const RANKS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+      const RANK_LABEL = {
+        2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9',
+        10: '10', 11: 'J', 12: 'Q', 13: 'K', 14: 'A'
+      };
+      const HAND_NAMES = [
+        '高牌', '一對', '兩對', '三條', '順子', '同花', '葫蘆', '四條', '同花順', '皇家同花順'
+      ];
+
+      function createDeck() {
+        const d = [];
+        for (const s of SUITS) {
+          for (const r of RANKS) {
+            d.push({ r, s, id: `${r}${s}` });
+          }
+        }
+        for (let i = d.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [d[i], d[j]] = [d[j], d[i]];
+        }
+        return d;
+      }
+
+      function compareScoreArr(a, b) {
+        const len = Math.max(a.length, b.length);
+        for (let i = 0; i < len; i++) {
+          const diff = (a[i] || 0) - (b[i] || 0);
+          if (diff !== 0) return diff;
+        }
+        return 0;
+      }
+
+      function evaluate5(cards) {
+        const sorted = [...cards].sort((a, b) => b.r - a.r);
+        const ranks = sorted.map(c => c.r);
+        const isFlush = sorted.every(c => c.s === sorted[0].s);
+
+        const counts = {};
+        for (const r of ranks) counts[r] = (counts[r] || 0) + 1;
+        const groups = Object.entries(counts)
+          .map(([r, c]) => ({ r: Number(r), c }))
+          .sort((a, b) => b.c - a.c || b.r - a.r);
+
+        let isStraight = false;
+        let straightHigh = 0;
+        const uniq = [...new Set(ranks)];
+        if (uniq.length === 5) {
+          if (uniq[0] - uniq[4] === 4) {
+            isStraight = true;
+            straightHigh = uniq[0];
+          } else if (uniq[0] === 14 && uniq[1] === 5 && uniq[2] === 4 && uniq[3] === 3 && uniq[4] === 2) {
+            isStraight = true;
+            straightHigh = 5;
+          }
+        }
+
+        let score;
+        if (isFlush && isStraight) {
+          score = straightHigh === 14 ? [9, 14] : [8, straightHigh];
+        } else if (groups[0].c === 4) {
+          score = [7, groups[0].r, groups[1].r];
+        } else if (groups[0].c === 3 && groups[1].c === 2) {
+          score = [6, groups[0].r, groups[1].r];
+        } else if (isFlush) {
+          score = [5, ...ranks];
+        } else if (isStraight) {
+          score = [4, straightHigh];
+        } else if (groups[0].c === 3) {
+          score = [3, groups[0].r, groups[1].r, groups[2].r];
+        } else if (groups[0].c === 2 && groups[1].c === 2) {
+          score = [2, groups[0].r, groups[1].r, groups[2].r];
+        } else if (groups[0].c === 2) {
+          score = [1, groups[0].r, groups[1].r, groups[2].r, groups[3].r];
+        } else {
+          score = [0, ...ranks];
+        }
+
+        return {
+          score,
+          category: score[0],
+          name: HAND_NAMES[score[0]],
+          cards: sorted
+        };
+      }
+
+      function evaluateBest(cards) {
+        if (cards.length < 5) {
+          // Pre-flop quick description
+          if (cards.length === 2) {
+            const [a, b] = [...cards].sort((x, y) => y.r - x.r);
+            if (a.r === b.r) {
+              return { score: [1, a.r], category: 1, name: `口袋對子 ${RANK_LABEL[a.r]}`, cards };
+            }
+            const suited = a.s === b.s ? '同花' : '';
+            return { score: [0, a.r, b.r], category: 0, name: `${RANK_LABEL[a.r]}${RANK_LABEL[b.r]} ${suited || '高牌'}`.trim(), cards };
+          }
+          return { score: [0], category: 0, name: '等待發牌', cards };
+        }
+
+        let best = null;
+        const n = cards.length;
+        for (let i = 0; i < n - 4; i++) {
+          for (let j = i + 1; j < n - 3; j++) {
+            for (let k = j + 1; k < n - 2; k++) {
+              for (let l = k + 1; l < n - 1; l++) {
+                for (let m = l + 1; m < n; m++) {
+                  const res = evaluate5([cards[i], cards[j], cards[k], cards[l], cards[m]]);
+                  if (!best || compareScoreArr(res.score, best.score) > 0) {
+                    best = res;
+                  }
+                }
+              }
+            }
+          }
+        }
+        return best;
+      }
+
+      // ============================================================
+      // 4. Game State
+      // ============================================================
+      const state = {
+        sb: 10,
+        bb: 20,
+        fourColor: false,
+        handNumber: 0,
+        heroWins: 0,
+        dealerIdx: 3, // Will rotate to 0 on Hand 1
+        deck: [],
+        community: [],
+        pot: 0,
+        street: 'IDLE', // PRE-FLOP, FLOP, TURN, RIVER, SHOWDOWN
+        currentBet: 0,
+        minRaise: 20,
+        turnIdx: -1,
+        raiseOpen: false,
+        winningCardIds: new Set(),
+        winnerIds: new Set(),
+        aiTimer: null,
+        players: [
+          { id: 0, name: '你', isHero: true, style: 'hero', chips: 1000, cards: [], folded: false, allIn: false, roundBet: 0, totalBet: 0, acted: false, lastAction: '', actionType: '' },
+          { id: 1, name: 'Alex', isHero: false, style: 'balanced', chips: 1000, cards: [], folded: false, allIn: false, roundBet: 0, totalBet: 0, acted: false, lastAction: '', actionType: '' },
+          { id: 2, name: 'Maya', isHero: false, style: 'tight', chips: 1000, cards: [], folded: false, allIn: false, roundBet: 0, totalBet: 0, acted: false, lastAction: '', actionType: '' },
+          { id: 3, name: 'Ken', isHero: false, style: 'aggressive', chips: 1000, cards: [], folded: false, allIn: false, roundBet: 0, totalBet: 0, acted: false, lastAction: '', actionType: '' }
+        ]
+      };
+
+      function fmt(n) {
+        return '$' + Math.max(0, Math.floor(n)).toLocaleString('en-US');
+      }
+
+      function clearTimers() {
+        if (state.aiTimer) {
+          clearTimeout(state.aiTimer);
+          state.aiTimer = null;
+        }
+      }
+
+      function nextActiveIndex(fromIdx, includeAllIn = false) {
+        for (let step = 1; step <= 4; step++) {
+          const idx = (fromIdx + step) % 4;
+          const p = state.players[idx];
+          if (p.chips <= 0 && p.totalBet === 0) continue;
+          if (p.folded) continue;
+          if (!includeAllIn && p.allIn) continue;
+          return idx;
+        }
+        return -1;
+      }
+
+      function activeInHand() {
+        return state.players.filter(p => !p.folded && (p.cards.length === 2));
+      }
+
+      function canActPlayers() {
+        return state.players.filter(p => !p.folded && !p.allIn && p.cards.length === 2);
+      }
+
+      function postChips(p, amount) {
+        const actual = Math.min(p.chips, Math.max(0, Math.floor(amount)));
+        p.chips -= actual;
+        p.roundBet += actual;
+        p.totalBet += actual;
+        state.pot += actual;
+        if (p.chips === 0) p.allIn = true;
+        return actual;
+      }
+
+      // ============================================================
+      // 5. Hand Lifecycle
+      // ============================================================
+      function startNewHand() {
+        clearTimers();
+        state.winningCardIds.clear();
+        state.winnerIds.clear();
+        state.raiseOpen = false;
+        hideBanner();
+
+        // Check if hero busted or all AI busted
+        const hero = state.players[0];
+        const aliveAI = state.players.slice(1).filter(p => p.chips > 0);
+        if (hero.chips <= 0) {
+          hero.chips = 1000;
+        }
+        if (aliveAI.length === 0) {
+          state.players.forEach(p => { p.chips = 1000; });
+        }
+
+        state.handNumber += 1;
+        state.deck = createDeck();
+        state.community = [];
+        state.pot = 0;
+        state.street = 'PRE-FLOP';
+        state.currentBet = state.bb;
+        state.minRaise = state.bb;
+
+        // Reset players who have chips
+        const funded = state.players.filter(p => p.chips > 0);
+        state.players.forEach(p => {
+          p.cards = [];
+          p.folded = p.chips <= 0;
+          p.allIn = false;
+          p.roundBet = 0;
+          p.totalBet = 0;
+          p.acted = false;
+          p.lastAction = p.chips <= 0 ? '淘汰' : '';
+          p.actionType = p.chips <= 0 ? 'fold' : '';
+          p.role = '';
+        });
+
+        // Rotate dealer among funded players
+        let d = state.dealerIdx;
+        for (let i = 0; i < 4; i++) {
+          d = (d + 1) % 4;
+          if (state.players[d].chips > 0) break;
+        }
+        state.dealerIdx = d;
+
+        // Deal 2 cards to each funded player
+        funded.forEach(p => {
+          p.cards = [state.deck.pop(), state.deck.pop()];
+        });
+        Sound.deal();
+
+        // Blinds (heads-up vs 3-4 players)
+        let sbIdx, bbIdx, firstToAct;
+        if (funded.length === 2) {
+          sbIdx = state.dealerIdx;
+          bbIdx = nextActiveIndex(sbIdx, true);
+          firstToAct = sbIdx;
+        } else {
+          sbIdx = nextActiveIndex(state.dealerIdx, true);
+          bbIdx = nextActiveIndex(sbIdx, true);
+          firstToAct = nextActiveIndex(bbIdx, false);
+        }
+
+        const sbP = state.players[sbIdx];
+        const bbP = state.players[bbIdx];
+        sbP.role = 'SB';
+        bbP.role = 'BB';
+
+        const sbPosted = postChips(sbP, state.sb);
+        sbP.lastAction = `小盲 ${fmt(sbPosted)}`;
+        sbP.actionType = 'blind';
+
+        const bbPosted = postChips(bbP, state.bb);
+        bbP.lastAction = `大盲 ${fmt(bbPosted)}`;
+        bbP.actionType = 'blind';
+
+        state.currentBet = Math.max(sbP.roundBet, bbP.roundBet);
+        state.turnIdx = firstToAct !== -1 ? firstToAct : -1;
+
+        renderAll();
+        if (state.turnIdx === -1 || canActPlayers().length <= 1 && allMatched()) {
+          runOutBoard();
+        } else {
+          scheduleIfAI();
+        }
+      }
+
+      function allMatched() {
+        return canActPlayers().every(p => p.acted && p.roundBet === state.currentBet);
+      }
+
+      function applyAction(playerIdx, action, raiseTargetTotal = 0) {
+        const p = state.players[playerIdx];
+        if (!p || p.folded || p.allIn) return;
+
+        const toCall = Math.max(0, state.currentBet - p.roundBet);
+
+        if (action === 'fold') {
+          p.folded = true;
+          p.acted = true;
+          p.lastAction = '棄牌';
+          p.actionType = 'fold';
+          Sound.fold();
+        } else if (action === 'check') {
+          p.acted = true;
+          p.lastAction = '過牌';
+          p.actionType = 'check';
+          Sound.check();
+        } else if (action === 'call') {
+          const paid = postChips(p, toCall);
+          p.acted = true;
+          if (p.allIn) {
+            p.lastAction = `ALL-IN ${fmt(p.roundBet)}`;
+            p.actionType = 'allin';
+          } else {
+            p.lastAction = `跟注 ${fmt(paid)}`;
+            p.actionType = 'call';
+          }
+          Sound.chip();
+        } else if (action === 'raise') {
+          const maxTotal = p.roundBet + p.chips;
+          const target = Math.min(maxTotal, Math.max(state.currentBet + state.minRaise, Math.floor(raiseTargetTotal)));
+          const diff = target - p.roundBet;
+          postChips(p, diff);
+
+          if (p.roundBet > state.currentBet) {
+            const raiseDelta = p.roundBet - state.currentBet;
+            if (raiseDelta >= state.minRaise) state.minRaise = raiseDelta;
+            state.currentBet = p.roundBet;
+            // Reset acted for other active players
+            state.players.forEach(other => {
+              if (other.id !== p.id && !other.folded && !other.allIn) {
+                other.acted = false;
+              }
+            });
+          }
+          p.acted = true;
+          if (p.allIn) {
+            p.lastAction = `ALL-IN ${fmt(p.roundBet)}`;
+            p.actionType = 'allin';
+          } else {
+            p.lastAction = `加注至 ${fmt(p.roundBet)}`;
+            p.actionType = 'raise';
+          }
+          Sound.chip();
+        }
+
+        state.raiseOpen = false;
+        advanceTurn(playerIdx);
+      }
+
+      function advanceTurn(lastIdx) {
+        const alive = activeInHand();
+        if (alive.length === 1) {
+          // Everyone else folded
+          finishByFold(alive[0]);
+          return;
+        }
+
+        const actors = canActPlayers();
+        const bettingDone = actors.length === 0 ||
+          (actors.length === 1 && actors[0].roundBet >= state.currentBet) ||
+          actors.every(p => p.acted && p.roundBet === state.currentBet);
+
+        if (bettingDone) {
+          nextStreet();
+          return;
+        }
+
+        const nextIdx = nextActiveIndex(lastIdx, false);
+        state.turnIdx = nextIdx;
+        renderAll();
+        scheduleIfAI();
+      }
+
+      function nextStreet() {
+        state.players.forEach(p => {
+          p.roundBet = 0;
+          p.acted = false;
+          if (!p.folded && !p.allIn && p.cards.length === 2) {
+            p.lastAction = '';
+            p.actionType = '';
+          }
+        });
+        state.currentBet = 0;
+        state.minRaise = state.bb;
+
+        if (state.street === 'PRE-FLOP') {
+          state.street = 'FLOP';
+          state.community.push(state.deck.pop(), state.deck.pop(), state.deck.pop());
+          Sound.deal();
+        } else if (state.street === 'FLOP') {
+          state.street = 'TURN';
+          state.community.push(state.deck.pop());
+          Sound.deal();
+        } else if (state.street === 'TURN') {
+          state.street = 'RIVER';
+          state.community.push(state.deck.pop());
+          Sound.deal();
+        } else {
+          doShowdown();
+          return;
+        }
+
+        // If fewer than 2 players can still bet (e.g. All-In runout), deal remaining streets automatically
+        if (canActPlayers().length <= 1) {
+          state.turnIdx = -1;
+          renderAll();
+          runOutBoard();
+          return;
+        }
+
+        state.turnIdx = nextActiveIndex(state.dealerIdx, false);
+        renderAll();
+        scheduleIfAI();
+      }
+
+      function runOutBoard() {
+        clearTimers();
+        if (state.street === 'RIVER') {
+          state.aiTimer = setTimeout(doShowdown, 750);
+        } else {
+          state.aiTimer = setTimeout(nextStreet, 750);
+        }
+      }
+
+      function finishByFold(winner) {
+        clearTimers();
+        state.street = 'SHOWDOWN';
+        state.turnIdx = -1;
+        const wonAmount = state.pot;
+        winner.chips += wonAmount;
+        state.pot = 0;
+        state.winnerIds.add(winner.id);
+        if (winner.isHero) state.heroWins += 1;
+        Sound.win();
+        showBanner(`${winner.name} 贏得 ${fmt(wonAmount)}`, '其他玩家全數棄牌');
+        renderAll();
+      }
+
+      function doShowdown() {
+        clearTimers();
+        state.street = 'SHOWDOWN';
+        state.turnIdx = -1;
+
+        const contenders = activeInHand();
+        const evalMap = new Map();
+        contenders.forEach(p => {
+          evalMap.set(p.id, evaluateBest([...p.cards, ...state.community]));
+        });
+
+        // Side-pot aware payout distribution
+        const contributions = state.players
+          .filter(p => p.totalBet > 0)
+          .map(p => ({ id: p.id, rem: p.totalBet }));
+
+        const payouts = new Map();
+        let totalAwarded = 0;
+
+        while (contributions.some(c => c.rem > 0)) {
+          const minLayer = Math.min(...contributions.filter(c => c.rem > 0).map(c => c.rem));
+          let layerPot = 0;
+          const eligibleIds = new Set();
+
+          contributions.forEach(c => {
+            if (c.rem > 0) {
+              const take = Math.min(c.rem, minLayer);
+              c.rem -= take;
+              layerPot += take;
+              eligibleIds.add(c.id);
+            }
+          });
+
+          const eligibleContenders = contenders.filter(p => eligibleIds.has(p.id));
+          if (eligibleContenders.length === 0) continue;
+
+          let bestEval = null;
+          let layerWinners = [];
+          eligibleContenders.forEach(p => {
+            const ev = evalMap.get(p.id);
+            if (!bestEval) {
+              bestEval = ev;
+              layerWinners = [p];
+            } else {
+              const cmp = compareScoreArr(ev.score, bestEval.score);
+              if (cmp > 0) {
+                bestEval = ev;
+                layerWinners = [p];
+              } else if (cmp === 0) {
+                layerWinners.push(p);
+              }
+            }
+          });
+
+          const share = Math.floor(layerPot / layerWinners.length);
+          let odd = layerPot - share * layerWinners.length;
+          layerWinners.forEach(w => {
+            const extra = odd > 0 ? 1 : 0;
+            if (odd > 0) odd -= 1;
+            const amt = share + extra;
+            payouts.set(w.id, (payouts.get(w.id) || 0) + amt);
+            totalAwarded += amt;
+          });
+        }
+
+        // Apply payouts & collect winning highlights
+        let topWinnerNames = [];
+        let topHandName = '';
+        let topScore = null;
+
+        payouts.forEach((amt, id) => {
+          const p = state.players[id];
+          p.chips += amt;
+          state.winnerIds.add(id);
+          const ev = evalMap.get(id);
+          if (!topScore || compareScoreArr(ev.score, topScore) >= 0) {
+            topScore = ev.score;
+            topHandName = ev.name;
+          }
+          if (ev) ev.cards.forEach(c => state.winningCardIds.add(c.id));
+          topWinnerNames.push(`${p.name} (+${fmt(amt)})`);
+        });
+
+        if (state.winnerIds.has(0)) state.heroWins += 1;
+        state.pot = 0;
+        Sound.win();
+
+        const heroBusted = state.players[0].chips <= 0;
+        const aiAllBusted = state.players.slice(1).every(p => p.chips <= 0);
+        let subText = `勝出牌型：${topHandName}`;
+        if (heroBusted) subText += ' · 籌碼歸零，點擊下方免費補充 $1,000';
+        else if (aiAllBusted) subText += ' · 恭喜清空全桌！';
+
+        showBanner(topWinnerNames.join(' / '), subText);
+        renderAll();
+      }
+
+      // ============================================================
+      // 6. AI Decision Logic
+      // ============================================================
+      function scheduleIfAI() {
+        clearTimers();
+        if (state.turnIdx < 0 || state.street === 'SHOWDOWN') return;
+        const p = state.players[state.turnIdx];
+        if (!p || p.isHero) return;
+
+        state.aiTimer = setTimeout(() => {
+          makeAIDecision(p);
+        }, 620 + Math.floor(Math.random() * 320));
+      }
+
+      function estimateStrength(p) {
+        if (state.community.length === 0) {
+          const [a, b] = [...p.cards].sort((x, y) => y.r - x.r);
+          let s = (a.r + b.r) / 28;
+          if (a.r === b.r) s += 0.32 + (a.r / 35);
+          if (a.s === b.s) s += 0.08;
+          if (a.r - b.r === 1) s += 0.06;
+          if (a.r >= 13 && b.r >= 10) s += 0.14;
+          return Math.min(1, s);
+        }
+        const ev = evaluateBest([...p.cards, ...state.community]);
+        const base = [0.22, 0.48, 0.68, 0.78, 0.85, 0.89, 0.94, 0.98, 0.99, 1.0][ev.category];
+        const kickerBonus = ((ev.score[1] || 7) - 7) * 0.015;
+        return Math.max(0.1, Math.min(1, base + kickerBonus));
+      }
+
+      function makeAIDecision(p) {
+        const toCall = Math.max(0, state.currentBet - p.roundBet);
+        const potOdds = toCall / Math.max(1, state.pot + toCall);
+        let strength = estimateStrength(p);
+
+        // Style modifier
+        if (p.style === 'tight') strength -= 0.06;
+        if (p.style === 'aggressive') strength += 0.08;
+        strength += (Math.random() - 0.5) * 0.14;
+
+        const canRaise = p.chips > toCall;
+        const minRaiseTotal = state.currentBet + state.minRaise;
+
+        if (toCall === 0) {
+          if (canRaise && (strength > 0.66 || (p.style === 'aggressive' && Math.random() < 0.22))) {
+            const size = Math.max(minRaiseTotal, Math.round((state.pot * (0.5 + Math.random() * 0.4)) / 10) * 10);
+            applyAction(p.id, 'raise', Math.min(p.roundBet + p.chips, size));
+          } else {
+            applyAction(p.id, 'check');
+          }
+          return;
+        }
+
+        // Facing a bet
+        if (strength > 0.78 && canRaise && Math.random() < 0.65) {
+          const bump = Math.max(minRaiseTotal, state.currentBet + Math.round((state.pot * 0.6) / 10) * 10);
+          applyAction(p.id, 'raise', Math.min(p.roundBet + p.chips, bump));
+        } else if (strength >= potOdds + 0.12 || (toCall <= state.bb && strength > 0.34)) {
+          applyAction(p.id, 'call');
+        } else {
+          applyAction(p.id, 'fold');
+        }
+      }
+
+      // ============================================================
+      // 7. Rendering
+      // ============================================================
+      function cardColorClass(suit) {
+        if (state.fourColor) {
+          if (suit === 'h') return 'red';
+          if (suit === 'd') return 'blue';
+          if (suit === 'c') return 'green';
+          return '';
+        }
+        return (suit === 'h' || suit === 'd') ? 'red' : '';
+      }
+
+      function renderCardEl(card, opts = {}) {
+        const el = document.createElement('div');
+        const classes = ['playing-card'];
+        if (opts.mini) classes.push('mini');
+        if (opts.hero) classes.push('hero-card');
+
+        if (!card || opts.faceDown) {
+          classes.push('back');
+          el.className = classes.join(' ');
+          return el;
+        }
+
+        const colorCls = cardColorClass(card.s);
+        if (colorCls) classes.push(colorCls);
+
+        if (state.street === 'SHOWDOWN' && state.winningCardIds.size > 0) {
+          if (state.winningCardIds.has(card.id)) classes.push('winning');
+          else classes.push('dimmed');
+        }
+
+        el.className = classes.join(' ');
+        el.innerHTML = `
+          <div class="card-corner">
+            <span class="card-rank">${RANK_LABEL[card.r]}</span>
+            <span class="card-suit-sm">${SUIT_SYMBOL[card.s]}</span>
+          </div>
+          <div class="card-suit-lg">${SUIT_SYMBOL[card.s]}</div>
+        `;
+        return el;
+      }
+
+      function showBanner(title, sub) {
+        document.getElementById('bannerTitle').textContent = title;
+        document.getElementById('bannerSub').textContent = sub;
+        document.getElementById('tableBanner').classList.remove('hidden');
+      }
+
+      function hideBanner() {
+        document.getElementById('tableBanner').classList.add('hidden');
+      }
+
+      function renderAll() {
+        // Header & Stats
+        document.getElementById('blindsDisplay').textContent = `盲注 ${state.sb}/${state.bb}`;
+        document.getElementById('handStatsLabel').textContent = `第 ${state.handNumber} 手 · 勝 ${state.heroWins} 場`;
+        document.getElementById('streetTag').textContent = state.street;
+        document.getElementById('potAmount').textContent = fmt(state.pot);
+
+        // Community Cards
+        const commEl = document.getElementById('communityCards');
+        commEl.innerHTML = '';
+        for (let i = 0; i < 5; i++) {
+          if (state.community[i]) {
+            commEl.appendChild(renderCardEl(state.community[i]));
+          } else {
+            const slot = document.createElement('div');
+            slot.className = 'card-slot';
+            commEl.appendChild(slot);
+          }
+        }
+
+        // Players (AI 1..3 + Hero 0)
+        state.players.forEach(p => {
+          const chipsEl = document.getElementById(`chips-${p.id}`);
+          if (chipsEl) chipsEl.textContent = fmt(p.chips);
+
+          const dEl = document.getElementById(`dealer-${p.id}`);
+          if (dEl) dEl.style.display = state.dealerIdx === p.id ? 'flex' : 'none';
+
+          const rEl = document.getElementById(`role-${p.id}`);
+          if (rEl) {
+            if (p.role) {
+              rEl.textContent = p.role;
+              rEl.style.display = 'block';
+            } else {
+              rEl.style.display = 'none';
+            }
+          }
+
+          const actEl = document.getElementById(`action-${p.id}`);
+          if (actEl) {
+            if (p.lastAction) {
+              actEl.textContent = p.lastAction;
+              actEl.className = `action-bubble ${p.actionType || 'blind'}`;
+            } else {
+              actEl.textContent = '-';
+              actEl.className = 'action-bubble empty';
+            }
+          }
+
+          const cardsEl = document.getElementById(`cards-${p.id}`);
+          if (cardsEl) {
+            cardsEl.innerHTML = '';
+            const revealAI = state.street === 'SHOWDOWN' && !p.folded && activeInHand().length > 1;
+            p.cards.forEach(card => {
+              cardsEl.appendChild(renderCardEl(card, {
+                mini: !p.isHero,
+                hero: p.isHero,
+                faceDown: !p.isHero && !revealAI
+              }));
+            });
+          }
+
+          const container = p.isHero ? document.getElementById('heroPanel') : document.getElementById(`seat-${p.id}`);
+          if (container) {
+            container.classList.toggle('folded', p.folded);
+            container.classList.toggle('active-turn', state.turnIdx === p.id && state.street !== 'SHOWDOWN');
+            container.classList.toggle('winner', state.winnerIds.has(p.id));
+          }
+        });
+
+        // Hero Hand Strength & Round Bet
+        const hero = state.players[0];
+        const rankPill = document.getElementById('heroHandRank');
+        if (hero.folded) {
+          rankPill.textContent = '已棄牌';
+        } else if (hero.cards.length === 2) {
+          const ev = evaluateBest([...hero.cards, ...state.community]);
+          rankPill.textContent = ev.name;
+        } else {
+          rankPill.textContent = '等待發牌';
+        }
+        document.getElementById('heroRoundBet').textContent = hero.roundBet > 0 ? `本輪下注 ${fmt(hero.roundBet)}` : '';
+
+        renderControls();
+      }
+
+      function renderControls() {
+        const bar = document.getElementById('actionBar');
+        const drawer = document.getElementById('raiseDrawer');
+        const hero = state.players[0];
+
+        if (state.street === 'SHOWDOWN') {
+          drawer.classList.add('hidden');
+          let label = '下一手牌 (Next Hand)';
+          if (hero.chips <= 0) label = '免費補充 $1,000 並開始下一手';
+          else if (state.players.slice(1).every(p => p.chips <= 0)) label = '全員清空！重置新局';
+
+          bar.innerHTML = `<button type="button" class="btn-next-hand" id="btnNextHand">${label}</button>`;
+          document.getElementById('btnNextHand').addEventListener('click', startNewHand);
+          return;
+        }
+
+        // Ensure primary 3 buttons exist
+        if (!document.getElementById('btnFold')) {
+          bar.innerHTML = `
+            <button type="button" class="action-btn btn-fold" id="btnFold"><span>棄牌</span><span class="sub">Fold</span></button>
+            <button type="button" class="action-btn btn-call" id="btnCall"><span id="btnCallMain">過牌</span><span class="sub" id="btnCallSub">Check</span></button>
+            <button type="button" class="action-btn btn-raise" id="btnRaise"><span id="btnRaiseMain">加注</span><span class="sub" id="btnRaiseSub">Raise</span></button>
+          `;
+          bindActionButtons();
+        }
+
+        const isHeroTurn = state.turnIdx === 0 && !hero.folded && !hero.allIn;
+        const toCall = Math.max(0, state.currentBet - hero.roundBet);
+        const maxTotal = hero.roundBet + hero.chips;
+        const minTotal = Math.min(maxTotal, state.currentBet + state.minRaise);
+
+        const btnFold = document.getElementById('btnFold');
+        const btnCall = document.getElementById('btnCall');
+        const btnRaise = document.getElementById('btnRaise');
+
+        btnFold.disabled = !isHeroTurn;
+        btnCall.disabled = !isHeroTurn;
+        btnRaise.disabled = !isHeroTurn || hero.chips <= toCall;
+
+        if (toCall === 0) {
+          document.getElementById('btnCallMain').textContent = '過牌';
+          document.getElementById('btnCallSub').textContent = 'Check';
+        } else if (toCall >= hero.chips) {
+          document.getElementById('btnCallMain').textContent = 'ALL-IN';
+          document.getElementById('btnCallSub').textContent = fmt(hero.chips);
+        } else {
+          document.getElementById('btnCallMain').textContent = '跟注';
+          document.getElementById('btnCallSub').textContent = fmt(toCall);
+        }
+
+        const slider = document.getElementById('raiseSlider');
+        slider.min = minTotal;
+        slider.max = maxTotal;
+        slider.step = Math.max(10, state.sb);
+        if (Number(slider.value) < minTotal || Number(slider.value) > maxTotal) {
+          slider.value = minTotal;
+        }
+        document.getElementById('raiseValueLabel').textContent = fmt(Number(slider.value));
+
+        if (state.raiseOpen && isHeroTurn && hero.chips > toCall) {
+          drawer.classList.remove('hidden');
+          document.getElementById('btnRaiseMain').textContent = Number(slider.value) >= maxTotal ? '確認 ALL-IN' : '確認加注';
+          document.getElementById('btnRaiseSub').textContent = fmt(Number(slider.value));
+        } else {
+          drawer.classList.add('hidden');
+          document.getElementById('btnRaiseMain').textContent = toCall === 0 ? '下注' : '加注';
+          document.getElementById('btnRaiseSub').textContent = hero.chips > toCall ? `≥ ${fmt(minTotal)}` : '—';
+        }
+      }
+
+      // ============================================================
+      // 8. Event Wiring
+      // ============================================================
+      function bindActionButtons() {
+        document.getElementById('btnFold').addEventListener('click', () => {
+          if (state.turnIdx !== 0) return;
+          applyAction(0, 'fold');
+        });
+
+        document.getElementById('btnCall').addEventListener('click', () => {
+          if (state.turnIdx !== 0) return;
+          const toCall = Math.max(0, state.currentBet - state.players[0].roundBet);
+          applyAction(0, toCall === 0 ? 'check' : 'call');
+        });
+
+        document.getElementById('btnRaise').addEventListener('click', () => {
+          if (state.turnIdx !== 0) return;
+          const hero = state.players[0];
+          const toCall = Math.max(0, state.currentBet - hero.roundBet);
+          if (hero.chips <= toCall) return;
+
+          if (!state.raiseOpen) {
+            state.raiseOpen = true;
+            renderControls();
+          } else {
+            const target = Number(document.getElementById('raiseSlider').value);
+            applyAction(0, 'raise', target);
+          }
+        });
+      }
+
+      bindActionButtons();
+
+      // Slider & Quick Bets
+      document.getElementById('raiseSlider').addEventListener('input', (e) => {
+        const val = Number(e.target.value);
+        const maxTotal = state.players[0].roundBet + state.players[0].chips;
+        document.getElementById('raiseValueLabel').textContent = fmt(val);
+        document.getElementById('btnRaiseMain').textContent = val >= maxTotal ? '確認 ALL-IN' : '確認加注';
+        document.getElementById('btnRaiseSub').textContent = fmt(val);
+      });
+
+      document.querySelectorAll('.quick-bet-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const hero = state.players[0];
+          const maxTotal = hero.roundBet + hero.chips;
+          const minTotal = Math.min(maxTotal, state.currentBet + state.minRaise);
+          const preset = btn.dataset.preset;
+          let target = minTotal;
+
+          if (preset === 'half') target = Math.max(minTotal, Math.round((state.currentBet + state.pot * 0.5) / 10) * 10);
+          else if (preset === 'pot') target = Math.max(minTotal, Math.round((state.currentBet + state.pot) / 10) * 10);
+          else if (preset === 'allin') target = maxTotal;
+
+          target = Math.min(maxTotal, Math.max(minTotal, target));
+          const slider = document.getElementById('raiseSlider');
+          slider.value = target;
+          slider.dispatchEvent(new Event('input'));
+        });
+      });
+
+      // Top Bar Buttons & Modals
+      document.getElementById('btnSound').addEventListener('click', (e) => {
+        Sound.enabled = !Sound.enabled;
+        e.currentTarget.textContent = Sound.enabled ? '🔊' : '🔇';
+        e.currentTarget.classList.toggle('active', !Sound.enabled);
+      });
+
+      const ranksModal = document.getElementById('ranksModal');
+      const settingsModal = document.getElementById('settingsModal');
+
+      document.getElementById('btnRanks').addEventListener('click', () => ranksModal.classList.remove('hidden'));
+      document.getElementById('closeRanks').addEventListener('click', () => ranksModal.classList.add('hidden'));
+      ranksModal.addEventListener('click', (e) => { if (e.target === ranksModal) ranksModal.classList.add('hidden'); });
+
+      document.getElementById('btnSettings').addEventListener('click', () => settingsModal.classList.remove('hidden'));
+      document.getElementById('closeSettings').addEventListener('click', () => settingsModal.classList.add('hidden'));
+      settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.classList.add('hidden'); });
+
+      document.querySelectorAll('#blindSeg .seg-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#blindSeg .seg-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.sb = Number(btn.dataset.sb);
+          state.bb = Number(btn.dataset.bb);
+          document.getElementById('blindsDisplay').textContent = `盲注 ${state.sb}/${state.bb}`;
+        });
+      });
+
+      document.querySelectorAll('#deckColorSeg .seg-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#deckColorSeg .seg-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.fourColor = btn.dataset.mode === '4';
+          renderAll();
+        });
+      });
+
+      document.getElementById('btnResetMatch').addEventListener('click', () => {
+        state.handNumber = 0;
+        state.heroWins = 0;
+        state.players.forEach(p => { p.chips = 1000; });
+        settingsModal.classList.add('hidden');
+        startNewHand();
+      });
+
+      // Desktop Keyboard Shortcuts (F / C / R / Space)
+      window.addEventListener('keydown', (e) => {
+        if (!ranksModal.classList.contains('hidden') || !settingsModal.classList.contains('hidden')) {
+          if (e.key === 'Escape') {
+            ranksModal.classList.add('hidden');
+            settingsModal.classList.add('hidden');
+          }
+          return;
+        }
+        const key = e.key.toLowerCase();
+        if (state.street === 'SHOWDOWN' && (key === ' ' || key === 'enter')) {
+          e.preventDefault();
+          startNewHand();
+          return;
+        }
+        if (state.turnIdx !== 0) return;
+        if (key === 'f') document.getElementById('btnFold')?.click();
+        else if (key === 'c') document.getElementById('btnCall')?.click();
+        else if (key === 'r') document.getElementById('btnRaise')?.click();
+      });
+
+      // Kick off first hand on load
+      window.addEventListener('load', () => {
+        startNewHand();
+      });
+    })();
+  </script>
+</body>
+</html>
